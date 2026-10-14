@@ -1,1 +1,27 @@
-
+name: Publish Apple Music module
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/publish-module.yml'
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and verify module
+        env:
+          SOURCE_URL: https://github.com/Lumia1193/orbit-releases/releases/download/build-2026101403/apple-music-1.0.module.zip
+          EXPECTED_SHA256: 29c40acc4b862ef8e4909b714badbd2e53824fc33bb2e202e1308d960abba08c
+        run: |
+          curl --fail --location --retry 3 "$SOURCE_URL" --output apple-music-1.0.module.zip
+          echo "$EXPECTED_SHA256  apple-music-1.0.module.zip" | sha256sum --check --strict
+          if unzip -Z1 apple-music-1.0.module.zip | grep -Ei '\.icuewidget$'; then exit 1; fi
+      - name: Publish Apple Music 1.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view module-build-2026101402 --repo "$GH_REPO" >/dev/null 2>&1; then exit 0; fi
+          gh release create module-build-2026101402 apple-music-1.0.module.zip --repo "$GH_REPO" --title 'Apple Music 1.0' --notes 'Apple Music companion module for Orbit. Install and update from Orbit. No .icuewidget file is included. Your existing library stays on your PC.'
